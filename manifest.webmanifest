@@ -1,0 +1,9 @@
+{
+  "name": "MIRACLE ARENA Demo",
+  "short_name": "Miracle Arena",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#050505",
+  "theme_color": "#050505"
+}
