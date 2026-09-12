@@ -32,6 +32,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Wait for fresh root build to propagate
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..40}; do
+            URL="${PAGE_URL}?build=${GITHUB_SHA}-${i}"
+            BODY="$(curl -fsSL -H 'Cache-Control: no-cache, no-store, max-age=0' -H 'Pragma: no-cache' "$URL" || true)"
+            if echo "$BODY" | grep -q 'miracle-urban-v2-20260912c' && echo "$BODY" | grep -q 'SUNSET BLOCK · V2'; then
+              echo "Fresh root build visible on attempt $i"
+              exit 0
+            fi
+            echo "Root still stale on attempt $i; waiting for Pages/CDN propagation..."
+            sleep 5
+          done
+          echo "Fresh root build did not propagate in time."
+          exit 1
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -53,28 +71,32 @@ jobs:
           page.on('pageerror',e=>errors.push('PAGEERROR '+String(e)));
           page.on('console',m=>{if(m.type()==='error') errors.push('CONSOLE '+m.text())});
           const url=process.env.PAGE_URL+'?build='+Date.now();
-          const r=await page.goto(url,{waitUntil:'networkidle',timeout:60000});
-          if(!r?.ok()) throw new Error('HTTP '+r?.status());
-          const build=await page.locator('body').getAttribute('data-build');
-          if(!build?.includes('miracle-urban-v2')) throw new Error('Wrong public build: '+build);
-          const bodyText=await page.locator('body').innerText();
-          if(!bodyText.includes('SUNSET BLOCK · V2')) throw new Error('V2 marker missing');
-          if(bodyText.includes('THE TRIAL')||bodyText.includes('POTENTE')||bodyText.includes('GUARDIA')) throw new Error('Legacy 2D UI detected');
-          await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent?.includes('Personaggio animato caricato'),null,{timeout:20000});
-          await page.click('#start');
-          await page.waitForTimeout(1800);
-          if(await page.locator('#menu').isVisible()) throw new Error('Menu did not close');
-          const box=await page.locator('#arena').boundingBox();
-          if(!box||box.width<700||box.height<300) throw new Error('3D canvas not filling viewport');
-          const canvasOk=await page.evaluate(()=>{
-            const c=document.querySelector('#arena');
-            return !!c && c.width>1000 && c.height>500;
-          });
-          if(!canvasOk) throw new Error('Renderer canvas resolution too low');
-          if(errors.length) throw new Error(errors.join(' | '));
-          await page.screenshot({path:'miracle-live-iphone13.png',fullPage:true});
-          console.log('PASS: public root is V2, legacy UI absent, animated 3D character loaded, game entered, canvas active.');
-          await browser.close();
+          try {
+            const r=await page.goto(url,{waitUntil:'networkidle',timeout:60000});
+            if(!r?.ok()) throw new Error('HTTP '+r?.status());
+            const build=await page.locator('body').getAttribute('data-build');
+            if(!build?.includes('miracle-urban-v2')) throw new Error('Wrong public build: '+build);
+            const bodyText=await page.locator('body').innerText();
+            if(!bodyText.includes('SUNSET BLOCK · V2')) throw new Error('V2 marker missing');
+            if(bodyText.includes('THE TRIAL')||bodyText.includes('POTENTE')||bodyText.includes('GUARDIA')) throw new Error('Legacy 2D UI detected');
+            await page.waitForFunction(()=>document.querySelector('#loadStatus')?.textContent?.includes('Personaggio animato caricato'),null,{timeout:30000});
+            await page.click('#start');
+            await page.waitForTimeout(2200);
+            if(await page.locator('#menu').isVisible()) throw new Error('Menu did not close');
+            const box=await page.locator('#arena').boundingBox();
+            if(!box||box.width<700||box.height<300) throw new Error('3D canvas not filling viewport');
+            const canvasOk=await page.evaluate(()=>{
+              const c=document.querySelector('#arena');
+              const gl=c?.getContext('webgl2')||c?.getContext('webgl');
+              return !!c && !!gl && c.width>1000 && c.height>500;
+            });
+            if(!canvasOk) throw new Error('WebGL renderer unavailable or canvas resolution too low');
+            if(errors.length) throw new Error(errors.join(' | '));
+            console.log('PASS: public root is V2, legacy UI absent, animated 3D character loaded, WebGL active.');
+          } finally {
+            await page.screenshot({path:'miracle-live-iphone13.png',fullPage:true}).catch(()=>{});
+            await browser.close();
+          }
           EOF
       - name: Upload live visual proof
         if: always()
