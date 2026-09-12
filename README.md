@@ -1,26 +1,27 @@
 # MIRACLE ARENA
 
-Action RPG mobile, isometrico e solo landscape. Primo prototipo tecnico web eseguibile senza dipendenze, pensato per verificare il combattimento su iPhone/iPad.
+Action RPG mobile isometrico in landscape. Questa branch introduce il primo renderer 3D reale di The Yard, mantenendo il gameplay già presente.
 
 ## Avvio
-Servire `dist/` via HTTP (per esempio `python3 -m http.server 8000 --directory dist`) e aprire l'indirizzo nel browser. I moduli JavaScript richiedono HTTP: non aprire index.html con file://.
+Servire `dist/` via HTTP (per esempio `python3 -m http.server 8000 --directory dist`) e aprire l'indirizzo nel browser. I moduli JavaScript richiedono HTTP.
 
 ## Contenuto implementato
-- The Yard, Boxer e Wrestler con velocità, colpi e abilità differenti.
+- Renderer 3D WebGL con Three.js, camera prospettica/isometrica, luci dinamiche, nebbia, ombre, particelle e ambiente The Yard.
+- Personaggi 3D procedurali per Boxer, Wrestler, avversari e boss The Gatekeeper.
+- Animazioni base di movimento, colpo, telegraph nemico e feedback dei danni.
 - Tre scontri progressivi e boss The Gatekeeper.
-- Joystick multitouch a sinistra, attacco continuo, schivata con invulnerabilità e abilità a destra.
-- Attacchi nemici anticipati da un indicatore, HUD salute/Momentum, pausa automatica quando la pagina perde visibilità.
-- Allenamento tra scontri: 40 reputazione per livello, salute e danno aumentano.
-- Salvataggio locale di stile, livello e reputazione; audio sintetizzato attivabile.
-- Computer: WASD/frecce, J attacco, E abilità, spazio schivata, Esc pausa.
+- Joystick multitouch, attacco continuo, schivata con invulnerabilità e abilità.
+- HUD salute/Momentum, pausa automatica, progressione e allenamento.
+- Salvataggio locale di stile, livello e reputazione.
+- Controlli desktop: WASD/frecce, J attacco, E abilità, spazio schivata, Esc pausa.
 
-## Limiti espliciti
-Demo tecnica breve, non ancora la vertical slice da 20–30 minuti. Grafica geometrica provvisoria: non rappresenta la qualità realistica finale. Il Wrestler usa per ora danno ad area e interruzione, non una simulazione di prese. Nessun multiplayer, backend, account o sincronizzazione dei salvataggi. Nessuna build iOS nativa. I progressi restano nel browser e si perdono cancellandone i dati.
-
-## Direzione consolidata
-Action RPG Combat; hub The Yard; Academy/clan; Combat Mastery; Fight DNA; Warrior Mind; Legacy; Reputation; Adaptive AI; The Coach; The Arena Remembers. Questi sistemi, salvo la reputazione di base e l'allenamento, sono obiettivi futuri e non sono implementati nella demo.
+## Stato qualità
+Questa è una vertical-slice tecnica 3D, non ancora il prodotto commerciale finale. La base gameplay è funzionante e i test automatici del motore passano. Restano da validare in modo diretto su iPhone/Safari le prestazioni WebGL, il layout touch e la fluidità su dispositivo reale.
 
 ## Verifica
 `node --test tests/engine.test.mjs`
 
-Controlli automatici su combattimento, schivata, cooldown, progressione e boss. Compatibilità reale Safari/iOS e bilanciamento da verificare sul dispositivo. Non è stata eseguita una sessione di gioco su iPhone.
+Copre cooldown, skill energy, schivata/invulnerabilità, vittoria/sconfitta, boss, progressione, salvataggio e limiti di movimento.
+
+## Direzione consolidata
+Action RPG Combat; hub The Yard; Academy/clan; Combat Mastery; Fight DNA; Warrior Mind; Legacy; Reputation; Adaptive AI; The Coach; The Arena Remembers.
