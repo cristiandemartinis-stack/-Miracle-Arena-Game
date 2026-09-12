@@ -1,0 +1,71 @@
+name: MIRACLE Arena Quality Gate
+
+on:
+  push:
+    branches: ["miracle-gta-quality-demo"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Engine tests
+        run: node --test tests/engine.test.mjs
+      - name: Install browser harness
+        run: |
+          npm init -y
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start demo server
+        run: |
+          python3 -m http.server 4173 --directory dist > /tmp/miracle-server.log 2>&1 &
+          echo $! > /tmp/miracle-server.pid
+          sleep 2
+      - name: iPhone 13 landscape smoke test
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('PAGEERROR '+String(e)));
+          page.on('console',m=>{if(m.type()==='error') errors.push('CONSOLE '+m.text())});
+          const r=await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle',timeout:45000});
+          if(!r?.ok()) throw new Error('HTTP '+r?.status());
+          try {
+            await page.waitForSelector('#start:not([disabled])',{timeout:15000});
+            await page.click('#start');
+            await page.waitForTimeout(1800);
+            if(await page.locator('#menu').isVisible()) throw new Error('Menu did not close');
+            const box=await page.locator('#arena').boundingBox();
+            if(!box || box.width<700 || box.height<300) throw new Error('Canvas not filling landscape viewport');
+            await page.dispatchEvent('#attack','pointerdown',{pointerId:1,pointerType:'touch',clientX:760,clientY:310});
+            await page.waitForTimeout(250);
+            await page.dispatchEvent('#attack','pointerup',{pointerId:1,pointerType:'touch',clientX:760,clientY:310});
+            await page.click('#skill');
+            await page.click('#dodge');
+            await page.waitForTimeout(350);
+            if(errors.length) throw new Error('Browser errors: '+errors.join(' | '));
+            console.log('PASS: iPhone 13 landscape demo loaded, entered arena, and accepted attack/skill/dodge input.');
+          } catch (e) {
+            console.error('SMOKE FAILURE:', e);
+            console.error('BROWSER ERRORS:', errors.join(' | ') || 'none');
+            console.error('LOAD STATUS:', await page.locator('#loadStatus').textContent().catch(()=>''));
+            throw e;
+          } finally {
+            await page.screenshot({path:'miracle-iphone13-landscape.png',fullPage:true});
+            await browser.close();
+          }
+          EOF
+      - name: Upload test screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: miracle-iphone13-landscape
+          path: miracle-iphone13-landscape.png
