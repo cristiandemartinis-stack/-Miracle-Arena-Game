@@ -32,3 +32,19 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify published V2 demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.deployment.outputs.page_url }}v2/?build=${GITHUB_SHA}"
+          echo "Checking $URL"
+          for i in {1..20}; do
+            BODY="$(curl -fsSL -H 'Cache-Control: no-cache' "$URL" || true)"
+            if echo "$BODY" | grep -q 'miracle-urban-v2-20260912b' && echo "$BODY" | grep -q 'SUNSET BLOCK'; then
+              echo "PASS: live V2 page is the expected fresh build."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "FAIL: GitHub Pages is not serving the expected V2 build."
+          exit 1
