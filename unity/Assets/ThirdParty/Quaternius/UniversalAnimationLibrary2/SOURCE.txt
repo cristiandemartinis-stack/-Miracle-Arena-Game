@@ -1,0 +1,7 @@
+Original author: Quaternius
+Official UAL2: https://quaternius.com/packs/universalanimationlibrary2.html
+Official UAL1: https://quaternius.com/packs/universalanimationlibrary.html
+License: CC0 1.0 Universal
+UAL2 mirror: https://github.com/Barbatos6669/elderforge
+UAL1 mirror: https://github.com/DyingStar-game/DyingStar
+Assets selected: UAL2_Standard.glb and UAL1_Standard.fbx, both without root motion.
