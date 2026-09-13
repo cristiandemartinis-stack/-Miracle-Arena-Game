@@ -27,49 +27,25 @@ jobs:
           curl -fL "$base/UAL2_Standard.glb" -o "$dir/UAL2_Standard.glb"
           curl -fL "$base/LICENSE_Quaternius_CC0.txt" -o "$dir/LICENSE_Quaternius_CC0.txt"
           curl -fL "$base/README.txt" -o "$dir/README_UPSTREAM.txt"
-          cat > "$dir/SOURCE.txt" <<'EOF'
-Original author: Quaternius
-Official pack: https://quaternius.com/packs/universalanimationlibrary2.html
-License: CC0 1.0 Universal
-Mirror used for automated retrieval: https://github.com/Barbatos6669/elderforge
-Asset selected: UAL2_Standard.glb (root motion disabled)
-Reason: MIRACLE Arena uses CharacterController-driven movement and explicit dodge displacement.
-EOF
+          printf '%s\n' \
+            'Original author: Quaternius' \
+            'Official pack: https://quaternius.com/packs/universalanimationlibrary2.html' \
+            'License: CC0 1.0 Universal' \
+            'Mirror used for automated retrieval: https://github.com/Barbatos6669/elderforge' \
+            'Asset selected: UAL2_Standard.glb (root motion disabled)' \
+            'Reason: MIRACLE Arena uses CharacterController-driven movement and explicit dodge displacement.' \
+            > "$dir/SOURCE.txt"
 
       - name: Extract animation manifest from GLB
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import json, struct, pathlib
-          p = pathlib.Path('unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2/UAL2_Standard.glb')
-          data = p.read_bytes()
-          if data[:4] != b'glTF':
-              raise SystemExit('Not a valid GLB file')
-          version, total = struct.unpack_from('<II', data, 4)
-          if version != 2 or total != len(data):
-              raise SystemExit(f'Unexpected GLB header version={version} total={total} actual={len(data)}')
-          off = 12
-          json_obj = None
+          python3 -c "import json,struct,pathlib; p=pathlib.Path('unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2/UAL2_Standard.glb'); data=p.read_bytes(); assert data[:4]==b'glTF'; version,total=struct.unpack_from('<II',data,4); assert version==2 and total==len(data); off=12; obj=None
           while off < len(data):
-              chunk_len, chunk_type = struct.unpack_from('<II', data, off)
-              off += 8
-              chunk = data[off:off+chunk_len]
-              off += chunk_len
-              if chunk_type == 0x4E4F534A:
-                  json_obj = json.loads(chunk.decode('utf-8').rstrip(' \t\r\n\x00'))
-                  break
-          if json_obj is None:
-              raise SystemExit('GLB JSON chunk missing')
-          names = [a.get('name') or f'Animation_{i}' for i,a in enumerate(json_obj.get('animations', []))]
-          out = p.with_name('ANIMATION_MANIFEST.txt')
-          out.write_text('\n'.join(names) + '\n', encoding='utf-8')
-          print(f'Animations found: {len(names)}')
-          for n in names:
-              print(n)
-          if len(names) < 100:
-              raise SystemExit(f'Expected >=100 animations, found {len(names)}')
-          PY
+              chunk_len,chunk_type=struct.unpack_from('<II',data,off); off+=8; chunk=data[off:off+chunk_len]; off+=chunk_len
+              if chunk_type==0x4E4F534A:
+                  obj=json.loads(chunk.decode('utf-8').rstrip(' \\t\\r\\n\\x00')); break
+          assert obj is not None; names=[a.get('name') or f'Animation_{i}' for i,a in enumerate(obj.get('animations',[]))]; p.with_name('ANIMATION_MANIFEST.txt').write_text('\\n'.join(names)+'\\n',encoding='utf-8'); print('Animations found:',len(names)); print('\\n'.join(names)); assert len(names)>=100"
 
       - name: Validate combat coverage
         shell: bash
