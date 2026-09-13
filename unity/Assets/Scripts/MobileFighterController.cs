@@ -20,11 +20,13 @@ namespace MiracleArena
         private void Awake()
         {
             controller = GetComponent<CharacterController>();
+            if (animator == null) animator = GetComponentInChildren<Animator>(true);
             ResolveCamera();
         }
 
         public void SetMoveInput(Vector2 value) => moveInput = Vector2.ClampMagnitude(value, 1f);
         public void SetCamera(Transform value) => cameraTransform = value;
+        public void SetAnimator(Animator value) => animator = value;
 
         private void ResolveCamera()
         {
