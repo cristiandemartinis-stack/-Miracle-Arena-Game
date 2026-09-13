@@ -6,6 +6,7 @@ namespace MiracleArena
     {
         [SerializeField] private Transform playerSpawn;
         [SerializeField] private GameObject playerPrefab;
+        [SerializeField] private bool createRuntimeVerticalSlice = true;
 
         private void Awake()
         {
@@ -16,9 +17,18 @@ namespace MiracleArena
 
         private void Start()
         {
-            if (playerPrefab != null && playerSpawn != null && FindFirstObjectByType<MobileFighterController>() == null)
+            if (FindFirstObjectByType<MobileFighterController>() != null) return;
+
+            if (playerPrefab != null && playerSpawn != null)
             {
                 Instantiate(playerPrefab, playerSpawn.position, playerSpawn.rotation);
+                return;
+            }
+
+            if (createRuntimeVerticalSlice && FindFirstObjectByType<RuntimeVerticalSliceBuilder>() == null)
+            {
+                GameObject builder = new GameObject("MIRACLE Runtime Vertical Slice");
+                builder.AddComponent<RuntimeVerticalSliceBuilder>();
             }
         }
     }
