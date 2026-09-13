@@ -1,0 +1,45 @@
+name: Visual Validate Production Character
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "unity/Assets/ProductionCharacters/Vitruvian/**"
+      - "tools/blender/render_vitruvian.py"
+      - ".github/workflows/visual-validate-character.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  render-character:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y blender
+          blender --version
+
+      - name: Render production character preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender -b --python tools/blender/render_vitruvian.py
+          test -s visual-validation/vitruvian-production-preview.png
+          test -s visual-validation/vitruvian-production-report.json
+
+      - name: Upload visual validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vitruvian-Visual-Validation
+          path: visual-validation
+          if-no-files-found: error
