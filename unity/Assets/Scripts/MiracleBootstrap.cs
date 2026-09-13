@@ -6,7 +6,7 @@ namespace MiracleArena
     {
         [SerializeField] private Transform playerSpawn;
         [SerializeField] private GameObject playerPrefab;
-        [SerializeField] private bool createRuntimeVerticalSlice = true;
+        [SerializeField] private bool createRuntimeVerticalSlice = false;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void AutoBoot()
@@ -29,14 +29,18 @@ namespace MiracleArena
 
             if (playerPrefab != null && playerSpawn != null)
             {
-                Instantiate(playerPrefab, playerSpawn.position, playerSpawn.rotation);
+                GameObject player = Instantiate(playerPrefab, playerSpawn.position, playerSpawn.rotation);
+                if (!ProductionVisualValidator.IsProductionReady(player, out string reason))
+                {
+                    Debug.LogError($"MIRACLE production gate blocked player prefab: {reason}");
+                    Destroy(player);
+                }
                 return;
             }
 
-            if (createRuntimeVerticalSlice && FindFirstObjectByType<RuntimeVerticalSliceBuilder>() == null)
+            if (createRuntimeVerticalSlice)
             {
-                GameObject builder = new GameObject("MIRACLE Runtime Vertical Slice");
-                builder.AddComponent<RuntimeVerticalSliceBuilder>();
+                Debug.LogWarning("Legacy primitive vertical slice is disabled for production quality. Assign a production-ready player prefab instead.");
             }
         }
     }
