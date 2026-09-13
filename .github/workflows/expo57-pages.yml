@@ -1,0 +1,53 @@
+name: Expo 57 iPhone Web Preview
+
+on:
+  push:
+    paths:
+      - 'expo57/**'
+      - '.github/workflows/expo57-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+
+      - name: Install app dependencies
+        working-directory: expo57
+        run: npm install
+
+      - name: Install web compatibility packages
+        working-directory: expo57
+        run: npx expo install react-dom react-native-web
+
+      - name: Export web preview into Pages bundle
+        working-directory: expo57
+        run: npx expo export --platform web --output-dir ../dist/expo57
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
