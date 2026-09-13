@@ -18,8 +18,11 @@ namespace MiracleArena
 
         private void Awake()
         {
+            if (animator == null) animator = GetComponentInChildren<Animator>(true);
             Current = maxHealth;
         }
+
+        public void SetAnimator(Animator value) => animator = value;
 
         public void TakeDamage(float amount)
         {
