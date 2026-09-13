@@ -1,0 +1,3 @@
+Source: https://github.com/ibrews/VitruvianGodot
+Character/morphs/textures: CC0 per upstream README/NOTICE.
+Upstream code: MIT. Preserve NOTICE when redistributing.
