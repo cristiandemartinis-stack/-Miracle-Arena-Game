@@ -1,8 +1,11 @@
-name: Deploy MIRACLE Arena Demo
+name: Deploy MIRACLE Arena Expo Preview
 
 on:
   push:
     branches: ["main"]
+    paths:
+      - 'expo57/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -23,69 +26,93 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+
+      - name: Install app dependencies
+        working-directory: expo57
+        run: |
+          npm install
+          npx expo install react-dom react-native-web @expo/metro-runtime
+
+      - name: Validate Expo project
+        working-directory: expo57
+        run: npx expo-doctor
+
+      - name: Build Expo web preview
+        working-directory: expo57
+        run: npx expo export --platform web --output-dir web-dist
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload demo
+
+      - name: Upload Expo preview
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./expo57/web-dist
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-      - name: Wait for fresh V3 root build to propagate
+
+      - name: Wait for preview to propagate
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: bash
         run: |
           set -euo pipefail
           for i in {1..40}; do
-            URL="${PAGE_URL}?build=${GITHUB_SHA}-${i}"
-            BODY="$(curl -fsSL -H 'Cache-Control: no-cache, no-store, max-age=0' -H 'Pragma: no-cache' "$URL" || true)"
-            if echo "$BODY" | grep -q 'miracle-urban-v3-20260913' && echo "$BODY" | grep -q 'URBAN BLOCK · V3'; then
-              echo "Fresh V3 root build visible on attempt $i"
+            BODY="$(curl -fsSL -H 'Cache-Control: no-cache, no-store, max-age=0' -H 'Pragma: no-cache' "${PAGE_URL}?build=${GITHUB_SHA}-${i}" || true)"
+            if echo "$BODY" | grep -qi 'MIRACLE ARENA'; then
+              echo "Expo preview visible on attempt $i"
               exit 0
             fi
             sleep 5
           done
-          echo "Fresh V3 root build did not propagate in time."
+          echo "Expo preview did not propagate in time."
           exit 1
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+
       - name: Install browser gate
         run: |
           npm init -y
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-      - name: Verify public V3 on iPhone landscape
+
+      - name: Verify public Expo preview on iPhone landscape
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           node --input-type=module <<'EOF'
           import { chromium } from 'playwright';
-          const browser=await chromium.launch({headless:true});
-          const page=await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
-          const errors=[]; page.on('pageerror',e=>errors.push('PAGEERROR '+String(e))); page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE '+m.text())});
-          try{
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:3,isMobile:true,hasTouch:true});
+          const errors=[];
+          page.on('pageerror',e=>errors.push('PAGEERROR '+String(e)));
+          page.on('console',m=>{if(m.type()==='error')errors.push('CONSOLE '+m.text())});
+          try {
             const r=await page.goto(process.env.PAGE_URL+'?build='+Date.now(),{waitUntil:'networkidle',timeout:60000});
-            if(!r?.ok())throw new Error('HTTP '+r?.status());
-            const build=await page.locator('body').getAttribute('data-build'); if(build!=='miracle-urban-v3-20260913')throw new Error('Wrong build '+build);
-            const text=await page.locator('body').innerText(); if(!text.includes('URBAN BLOCK · V3'))throw new Error('V3 marker missing');
-            if(/THE TRIAL|POTENTE|GUARDIA/.test(text))throw new Error('Legacy UI detected');
-            await page.waitForFunction(()=>document.body.dataset.character==='loaded',null,{timeout:30000});
-            await page.click('#start'); await page.waitForTimeout(2200);
-            if(await page.locator('#menu').isVisible())throw new Error('Menu stayed open');
-            const box=await page.locator('#arena').boundingBox(); if(!box||box.width<700||box.height<300)throw new Error('Canvas too small');
-            const ok=await page.evaluate(()=>{const c=document.querySelector('#arena');const gl=c?.getContext('webgl2')||c?.getContext('webgl');return !!gl&&c.width>1000&&c.height>500}); if(!ok)throw new Error('WebGL inactive or low resolution');
-            await page.dispatchEvent('#attack','pointerdown',{pointerId:1,pointerType:'touch',clientX:760,clientY:310});await page.waitForTimeout(200);await page.dispatchEvent('#attack','pointerup',{pointerId:1,pointerType:'touch',clientX:760,clientY:310});await page.click('#skill');await page.click('#dodge');await page.waitForTimeout(500);
-            if(errors.length)throw new Error(errors.join(' | '));
-            console.log('PASS: V3 public build, animated model, WebGL and mobile combat controls active.');
-          } finally {await page.screenshot({path:'miracle-v3-iphone13.png',fullPage:true}).catch(()=>{});await browser.close();}
+            if(!r?.ok()) throw new Error('HTTP '+r?.status());
+            const text=await page.locator('body').innerText();
+            if(!text.includes('MIRACLE ARENA')) throw new Error('MIRACLE ARENA marker missing');
+            if(!text.includes('ATTACK') || !text.includes('POWER') || !text.includes('DODGE')) throw new Error('Combat controls missing');
+            await page.getByText('ATTACK',{exact:true}).click();
+            await page.getByText('POWER',{exact:true}).click();
+            await page.getByText('DODGE',{exact:true}).click();
+            await page.waitForTimeout(700);
+            if(errors.length) throw new Error(errors.join(' | '));
+            console.log('PASS: Expo 57 public preview loads and combat controls respond in iPhone landscape emulation.');
+          } finally {
+            await page.screenshot({path:'miracle-expo57-iphone13.png',fullPage:true}).catch(()=>{});
+            await browser.close();
+          }
           EOF
-      - name: Upload V3 visual proof
+
+      - name: Upload iPhone visual proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: miracle-v3-iphone13
-          path: miracle-v3-iphone13.png
+          name: miracle-expo57-iphone13
+          path: miracle-expo57-iphone13.png
