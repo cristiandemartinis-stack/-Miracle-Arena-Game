@@ -8,6 +8,14 @@ namespace MiracleArena
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private bool createRuntimeVerticalSlice = true;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void AutoBoot()
+        {
+            if (FindFirstObjectByType<MiracleBootstrap>() != null) return;
+            GameObject root = new GameObject("MIRACLE Bootstrap");
+            root.AddComponent<MiracleBootstrap>();
+        }
+
         private void Awake()
         {
             Application.targetFrameRate = 60;
