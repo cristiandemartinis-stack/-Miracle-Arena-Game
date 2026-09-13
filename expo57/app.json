@@ -5,6 +5,9 @@
     "version": "0.1.0",
     "orientation": "landscape",
     "userInterfaceStyle": "dark",
+    "experiments": {
+      "baseUrl": "/-Miracle-Arena-Game"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dmsteam.miraclearena"
