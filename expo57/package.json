@@ -1,0 +1,22 @@
+{
+  "name": "miracle-arena-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "android": "expo start --android",
+    "web": "expo start --web",
+    "doctor": "npx expo-doctor"
+  },
+  "dependencies": {
+    "expo": "~57.0.17",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
