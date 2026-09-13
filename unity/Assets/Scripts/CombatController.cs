@@ -1,5 +1,8 @@
 using System.Collections;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace MiracleArena
 {
@@ -7,7 +10,7 @@ namespace MiracleArena
     {
         [SerializeField] private Animator animator;
         [SerializeField] private Transform hitOrigin;
-        [SerializeField] private LayerMask hittableLayers;
+        [SerializeField] private LayerMask hittableLayers = ~0;
         [SerializeField] private float hitRadius = 0.75f;
         [SerializeField] private float hitDistance = 1.05f;
         [SerializeField] private float damage = 18f;
@@ -17,6 +20,17 @@ namespace MiracleArena
         private bool busy;
         private int comboStep;
         private float lastAttackTime;
+
+        private void Update()
+        {
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null)
+            {
+                if (Keyboard.current.jKey.wasPressedThisFrame) Attack();
+                if (Keyboard.current.spaceKey.wasPressedThisFrame) Dodge();
+            }
+#endif
+        }
 
         public void Attack()
         {
@@ -37,6 +51,12 @@ namespace MiracleArena
             foreach (Collider hit in Physics.OverlapSphere(center, hitRadius, hittableLayers, QueryTriggerInteraction.Ignore))
             {
                 if (hit.transform.root == transform.root) continue;
+                Health victim = hit.GetComponentInParent<Health>();
+                if (victim != null)
+                {
+                    victim.TakeDamage(damage);
+                    break;
+                }
                 hit.SendMessage("TakeDamage", damage, SendMessageOptions.DontRequireReceiver);
             }
             yield return new WaitForSeconds(0.18f);
