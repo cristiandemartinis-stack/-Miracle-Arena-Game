@@ -38,9 +38,14 @@ namespace MiracleArena
                 return;
             }
 
+            ProductionCharacterLoader loader = GetComponent<ProductionCharacterLoader>();
+            if (loader == null) loader = gameObject.AddComponent<ProductionCharacterLoader>();
+            if (loader.TryLoad(out _, out _, out string loadReason)) return;
+
+            Debug.LogWarning("MIRACLE production boot stopped: " + loadReason);
             if (createRuntimeVerticalSlice)
             {
-                Debug.LogWarning("Legacy primitive vertical slice is disabled for production quality. Assign a production-ready player prefab instead.");
+                Debug.LogWarning("Legacy primitive vertical slice remains disabled for production quality.");
             }
         }
     }
