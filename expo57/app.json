@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "MIRACLE ARENA",
+    "slug": "miracle-arena",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dmsteam.miraclearena"
+    },
+    "android": {
+      "package": "com.dmsteam.miraclearena"
+    }
+  }
+}
