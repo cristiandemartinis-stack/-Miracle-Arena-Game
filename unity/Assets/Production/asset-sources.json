@@ -1,0 +1,33 @@
+{
+  "character": {
+    "source": "MakeHuman Community",
+    "license": "CC0 for exported models",
+    "usage": "Create and export realistic humanoid base meshes for closed-source/commercial games without royalties. Replace runtime primitives with imported skinned meshes."
+  },
+  "animation": {
+    "source": "Adobe Mixamo",
+    "license": "Royalty-free use in video games with free Adobe ID",
+    "usage": "Rig humanoid fighter meshes and source boxing/combat locomotion clips. Do not redistribute raw Mixamo assets separately from the game."
+  },
+  "environment": {
+    "source": "Poly Haven",
+    "license": "CC0",
+    "usage": "Use PBR textures, HDRIs and 3D props for the urban yard. Prefer 1K-2K textures, baked lighting and LODs for iPhone 13."
+  },
+  "quality_gate": {
+    "reject": [
+      "primitive capsule/sphere characters",
+      "flat placeholder materials",
+      "unrigged humanoids",
+      "demo acceptance based only on buttons/loading"
+    ],
+    "require": [
+      "SkinnedMeshRenderer character",
+      "Animator with real clips",
+      "PBR environment materials",
+      "mobile touch controls",
+      "measured mobile performance",
+      "visual review before delivery"
+    ]
+  }
+}
