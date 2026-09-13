@@ -21,6 +21,13 @@ namespace MiracleArena
         private int comboStep;
         private float lastAttackTime;
 
+        private void Awake()
+        {
+            if (animator == null) animator = GetComponentInChildren<Animator>(true);
+        }
+
+        public void SetAnimator(Animator value) => animator = value;
+
         private void Update()
         {
 #if ENABLE_INPUT_SYSTEM
