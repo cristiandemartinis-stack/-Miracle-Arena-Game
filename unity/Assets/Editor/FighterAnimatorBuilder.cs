@@ -19,6 +19,11 @@ namespace MiracleArena.EditorTools
             "Assets/ProductionCharacters/Prefabs/FighterEnemy.prefab"
         };
 
+        private static readonly string[] ForbiddenCombatTerms =
+        {
+            "sword", "shield", "axe", "bow", "rifle", "gun", "spear", "staff", "dagger", "weapon"
+        };
+
         [MenuItem("MIRACLE/Production/Build Fighter Animator Controller")]
         public static void Build()
         {
@@ -31,19 +36,22 @@ namespace MiracleArena.EditorTools
 
             AnimationClip idle = Pick(clips, "idle", "loop") ?? Pick(clips, "idle");
             AnimationClip move = Pick(clips, "walk", "loop") ?? Pick(clips, "run", "loop") ?? Pick(clips, "walk");
-            AnimationClip attack1 = Pick(clips, "melee", "hook") ?? Pick(clips, "punch") ?? Pick(clips, "attack");
-            AnimationClip attack2 = Pick(clips, "sword", "regular", "a") ?? PickNext(clips, attack1, "melee", "sword", "attack");
-            AnimationClip attack3 = Pick(clips, "combo") ?? PickNext(clips, attack2, "melee", "sword", "attack");
-            AnimationClip dodge = Pick(clips, "slide", "start") ?? Pick(clips, "dash") ?? Pick(clips, "dodge");
-            AnimationClip hit = Pick(clips, "hit", "knockback") ?? Pick(clips, "hit") ?? Pick(clips, "damage");
-            AnimationClip ko = Pick(clips, "death") ?? Pick(clips, "die") ?? Pick(clips, "fall") ?? Pick(clips, "lay");
+
+            // Boxing/unarmed only. Never silently fall back to sword/weapon clips.
+            AnimationClip attack1 = PickPreferredCombat(clips, "jab", "punch", "melee_hook", "hook");
+            AnimationClip attack2 = PickDistinctCombat(clips, attack1, "cross", "straight", "overhand", "punch", "melee");
+            AnimationClip attack3 = PickDistinctCombat(clips, attack2, "combo", "uppercut", "hook", "punch", "melee");
+
+            AnimationClip dodge = PickPreferredCombat(clips, "dodge", "evade", "sidestep", "slide_start", "dash");
+            AnimationClip hit = PickPreferredCombat(clips, "hit_knockback", "hit", "damage", "react");
+            AnimationClip ko = PickPreferredCombat(clips, "knockout", "death", "die", "fall", "lay");
 
             var missing = new List<string>();
             if (idle == null) missing.Add("Idle");
             if (move == null) missing.Add("Move");
-            if (attack1 == null) missing.Add("Attack1");
-            if (attack2 == null) missing.Add("Attack2");
-            if (attack3 == null) missing.Add("Attack3");
+            if (attack1 == null) missing.Add("Attack1 boxer/unarmed");
+            if (attack2 == null) missing.Add("Attack2 boxer/unarmed");
+            if (attack3 == null) missing.Add("Attack3 boxer/unarmed");
             if (dodge == null) missing.Add("Dodge");
             if (hit == null) missing.Add("Hit");
             if (ko == null) missing.Add("KO");
@@ -51,6 +59,14 @@ namespace MiracleArena.EditorTools
             {
                 Debug.LogError("MIRACLE: animator build blocked; missing clips: " + string.Join(", ", missing));
                 DumpCandidateNames(clips);
+                return;
+            }
+
+            var selected = new[] { attack1, attack2, attack3, dodge, hit, ko };
+            var forbidden = selected.Where(c => c != null && ForbiddenCombatTerms.Any(t => c.name.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+            if (forbidden.Count > 0)
+            {
+                Debug.LogError("MIRACLE: animator build blocked because weapon/non-boxing clips were selected: " + string.Join(", ", forbidden.Select(c => c.name)));
                 return;
             }
 
@@ -72,12 +88,12 @@ namespace MiracleArena.EditorTools
             AddFloatTransition(idleState, moveState, "Speed", 0.15f, true);
             AddFloatTransition(moveState, idleState, "Speed", 0.10f, false);
 
-            AddTriggerState(sm, controller, idleState, "Attack1", attack1);
-            AddTriggerState(sm, controller, idleState, "Attack2", attack2);
-            AddTriggerState(sm, controller, idleState, "Attack3", attack3);
-            AddTriggerState(sm, controller, idleState, "Dodge", dodge);
-            AddTriggerState(sm, controller, idleState, "Hit", hit);
-            AddTriggerState(sm, controller, idleState, "KO", ko, returnToIdle:false);
+            AddTriggerState(sm, idleState, "Attack1", attack1);
+            AddTriggerState(sm, idleState, "Attack2", attack2);
+            AddTriggerState(sm, idleState, "Attack3", attack3);
+            AddTriggerState(sm, idleState, "Dodge", dodge);
+            AddTriggerState(sm, idleState, "Hit", hit);
+            AddTriggerState(sm, idleState, "KO", ko, returnToIdle:false);
 
             foreach (var path in Prefabs) AttachController(path, controller);
             AssetDatabase.SaveAssets();
@@ -96,12 +112,37 @@ namespace MiracleArena.EditorTools
 
         private static AnimationClip Pick(IEnumerable<AnimationClip> clips, params string[] terms)
         {
-            return clips.FirstOrDefault(c => terms.All(t => c.name.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0));
+            return clips.FirstOrDefault(c => terms.All(t => Normalize(c.name).Contains(Normalize(t))));
         }
 
-        private static AnimationClip PickNext(List<AnimationClip> clips, AnimationClip exclude, params string[] anyTerms)
+        private static AnimationClip PickPreferredCombat(IEnumerable<AnimationClip> clips, params string[] preferredTerms)
         {
-            return clips.FirstOrDefault(c => c != exclude && anyTerms.Any(t => c.name.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0));
+            foreach (var term in preferredTerms)
+            {
+                var clip = clips.FirstOrDefault(c => !IsForbidden(c) && Normalize(c.name).Contains(Normalize(term)));
+                if (clip != null) return clip;
+            }
+            return null;
+        }
+
+        private static AnimationClip PickDistinctCombat(IEnumerable<AnimationClip> clips, AnimationClip exclude, params string[] preferredTerms)
+        {
+            foreach (var term in preferredTerms)
+            {
+                var clip = clips.FirstOrDefault(c => c != exclude && !IsForbidden(c) && Normalize(c.name).Contains(Normalize(term)));
+                if (clip != null) return clip;
+            }
+            return null;
+        }
+
+        private static bool IsForbidden(AnimationClip clip)
+        {
+            return clip == null || ForbiddenCombatTerms.Any(t => clip.name.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private static string Normalize(string value)
+        {
+            return value.Replace("_", "").Replace("-", "").Replace(" ", "").ToLowerInvariant();
         }
 
         private static void AddFloatTransition(AnimatorState from, AnimatorState to, string parameter, float threshold, bool greater)
@@ -112,7 +153,7 @@ namespace MiracleArena.EditorTools
             t.AddCondition(greater ? AnimatorConditionMode.Greater : AnimatorConditionMode.Less, threshold, parameter);
         }
 
-        private static void AddTriggerState(AnimatorStateMachine sm, AnimatorController controller, AnimatorState fallback, string trigger, AnimationClip clip, bool returnToIdle = true)
+        private static void AddTriggerState(AnimatorStateMachine sm, AnimatorState fallback, string trigger, AnimationClip clip, bool returnToIdle = true)
         {
             var state = sm.AddState(trigger);
             state.motion = clip;
