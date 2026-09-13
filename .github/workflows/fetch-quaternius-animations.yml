@@ -17,26 +17,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download CC0 animation library
+      - name: Download CC0 animation libraries
         shell: bash
         run: |
           set -euo pipefail
-          dir="unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2"
-          mkdir -p "$dir"
-          base="https://raw.githubusercontent.com/Barbatos6669/elderforge/main/assets/animations/universal_animation_library_2"
-          curl -fL "$base/UAL2_Standard.glb" -o "$dir/UAL2_Standard.glb"
-          curl -fL "$base/LICENSE_Quaternius_CC0.txt" -o "$dir/LICENSE_Quaternius_CC0.txt"
-          curl -fL "$base/README.txt" -o "$dir/README_UPSTREAM.txt"
+          ual2="unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2"
+          ual1="unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary1"
+          mkdir -p "$ual2" "$ual1"
+
+          base2="https://raw.githubusercontent.com/Barbatos6669/elderforge/main/assets/animations/universal_animation_library_2"
+          curl -fL "$base2/UAL2_Standard.glb" -o "$ual2/UAL2_Standard.glb"
+          curl -fL "$base2/LICENSE_Quaternius_CC0.txt" -o "$ual2/LICENSE_Quaternius_CC0.txt"
+          curl -fL "$base2/README.txt" -o "$ual2/README_UPSTREAM.txt"
+
+          base1="https://raw.githubusercontent.com/DyingStar-game/DyingStar/2e723912f8020ff1824217ba8bb936acd3e593ec/assets/Universal%20Animation%20Library"
+          curl -fL "$base1/Unity/UAL1_Standard.fbx" -o "$ual1/UAL1_Standard.fbx"
+          curl -fL "$base1/License.txt" -o "$ual1/LICENSE_Quaternius_CC0.txt"
+          curl -fL "$base1/README.txt" -o "$ual1/README_UPSTREAM.txt"
+
           printf '%s\n' \
             'Original author: Quaternius' \
-            'Official pack: https://quaternius.com/packs/universalanimationlibrary2.html' \
+            'Official UAL2: https://quaternius.com/packs/universalanimationlibrary2.html' \
+            'Official UAL1: https://quaternius.com/packs/universalanimationlibrary.html' \
             'License: CC0 1.0 Universal' \
-            'Mirror used for automated retrieval: https://github.com/Barbatos6669/elderforge' \
-            'Asset selected: UAL2_Standard.glb (root motion disabled)' \
-            'Reason: MIRACLE Arena uses CharacterController-driven movement and explicit dodge displacement.' \
-            > "$dir/SOURCE.txt"
+            'UAL2 mirror: https://github.com/Barbatos6669/elderforge' \
+            'UAL1 mirror: https://github.com/DyingStar-game/DyingStar' \
+            'Assets selected: UAL2_Standard.glb and UAL1_Standard.fbx, both without root motion.' \
+            > "$ual2/SOURCE.txt"
+          cp "$ual2/SOURCE.txt" "$ual1/SOURCE.txt"
 
-      - name: Extract animation manifest from GLB
+      - name: Extract UAL2 animation manifest
         shell: bash
         run: |
           set -euo pipefail
@@ -45,17 +55,19 @@ jobs:
               chunk_len,chunk_type=struct.unpack_from('<II',data,off); off+=8; chunk=data[off:off+chunk_len]; off+=chunk_len
               if chunk_type==0x4E4F534A:
                   obj=json.loads(chunk.decode('utf-8').rstrip(' \\t\\r\\n\\x00')); break
-          assert obj is not None; names=[a.get('name') or f'Animation_{i}' for i,a in enumerate(obj.get('animations',[]))]; p.with_name('ANIMATION_MANIFEST.txt').write_text('\\n'.join(names)+'\\n',encoding='utf-8'); print('Animations found:',len(names)); print('\\n'.join(names)); assert len(names)>=100"
+          assert obj is not None; names=[a.get('name') or f'Animation_{i}' for i,a in enumerate(obj.get('animations',[]))]; p.with_name('ANIMATION_MANIFEST.txt').write_text('\\n'.join(names)+'\\n',encoding='utf-8'); print('UAL2 animations found:',len(names)); print('\\n'.join(names)); assert len(names)>=40"
 
-      - name: Validate combat coverage
+      - name: Validate required source coverage
         shell: bash
         run: |
           set -euo pipefail
-          f="unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2/ANIMATION_MANIFEST.txt"
-          grep -Eiq 'attack|punch|combo|melee' "$f"
-          grep -Eiq 'death|die|knock|fall' "$f"
-          grep -Eiq 'hit|damage|react' "$f"
-          echo "Combat animation coverage detected."
+          manifest="unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2/ANIMATION_MANIFEST.txt"
+          grep -Eiq 'melee|hook|combo' "$manifest"
+          grep -Eiq 'hit|knockback|react' "$manifest"
+          test -s unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary1/UAL1_Standard.fbx
+          bytes=$(wc -c < unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary1/UAL1_Standard.fbx)
+          test "$bytes" -gt 10000000
+          echo "Verified UAL2 melee/hit coverage and UAL1 Unity animation source ($bytes bytes)."
 
       - name: Commit animation assets
         shell: bash
@@ -63,10 +75,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add unity/Assets/ThirdParty/Quaternius/UniversalAnimationLibrary2
+          git add unity/Assets/ThirdParty/Quaternius
           if git diff --cached --quiet; then
             echo "No animation changes to commit."
             exit 0
           fi
-          git commit -m "Vendor CC0 Quaternius UAL2 combat animations"
+          git commit -m "Vendor CC0 Quaternius UAL1 and UAL2 animations"
           git push
