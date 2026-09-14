@@ -15,8 +15,8 @@ namespace MiracleArena.EditorTools
         private const string ControllerPath = "Assets/ProductionCharacters/Fighter.controller";
         private static readonly string[] Prefabs =
         {
-            "Assets/ProductionCharacters/Prefabs/FighterPlayer.prefab",
-            "Assets/ProductionCharacters/Prefabs/FighterEnemy.prefab"
+            "Assets/Resources/Characters/FighterPlayer.prefab",
+            "Assets/Resources/Characters/FighterEnemy.prefab"
         };
 
         private static readonly string[] ForbiddenCombatTerms =
