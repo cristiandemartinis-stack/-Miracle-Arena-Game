@@ -67,21 +67,18 @@ jobs:
         with:
           lfs: true
 
-      - name: Check Unity activation
-        id: activation
+      - name: Require Unity activation
         shell: bash
         run: |
-          if [ -n "${UNITY_LICENSE:-}" ] || [ -n "${UNITY_SERIAL:-}" ]; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-            echo 'Unity activation material is configured.'
-          else
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo 'Unity build skipped: configure UNITY_LICENSE or UNITY_SERIAL in repository Actions secrets.'
+          set -euo pipefail
+          if [ -z "${UNITY_LICENSE:-}" ] && [ -z "${UNITY_SERIAL:-}" ]; then
+            echo 'ERROR: Unity activation is not configured.'
+            echo 'Add UNITY_LICENSE (recommended for Unity Personal) or UNITY_SERIAL plus UNITY_EMAIL/UNITY_PASSWORD as GitHub Actions secrets.'
+            exit 1
           fi
+          echo 'Unity activation material is configured.'
 
       - name: Unity build
-        if: steps.activation.outputs.ready == 'true'
-        id: build
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
@@ -98,7 +95,6 @@ jobs:
           versioning: Semantic
 
       - name: Upload Android build
-        if: steps.activation.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: MiracleArena-Android
@@ -118,19 +114,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check Unity activation
-        id: activation
+      - name: Require Unity activation
         shell: bash
         run: |
-          if [ -n "${UNITY_LICENSE:-}" ] || [ -n "${UNITY_SERIAL:-}" ]; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo 'Unity editmode validation skipped: activation secret is not configured.'
+          set -euo pipefail
+          if [ -z "${UNITY_LICENSE:-}" ] && [ -z "${UNITY_SERIAL:-}" ]; then
+            echo 'ERROR: Unity activation is not configured.'
+            echo 'Add UNITY_LICENSE (recommended for Unity Personal) or UNITY_SERIAL plus UNITY_EMAIL/UNITY_PASSWORD as GitHub Actions secrets.'
+            exit 1
           fi
+          echo 'Unity activation material is configured.'
 
       - name: Unity editmode tests
-        if: steps.activation.outputs.ready == 'true'
         uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
@@ -145,7 +140,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload test results
-        if: always() && steps.activation.outputs.ready == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Unity-Test-Results
