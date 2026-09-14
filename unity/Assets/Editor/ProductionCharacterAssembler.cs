@@ -11,7 +11,11 @@ namespace MiracleArena.EditorTools
         private const string BodyPath = Root + "/vitruvian_body.glb";
         private const string HeadPath = Root + "/vitruvian_head.glb";
         private const string HairPath = Root + "/vitruvian_hair_rigged.glb";
-        private const string PrefabDir = "Assets/ProductionCharacters/Prefabs";
+
+        // Runtime ProductionCharacterLoader uses Resources.Load("Characters/FighterPlayer")
+        // and Resources.Load("Characters/FighterEnemy"). Keep the generated prefabs in the
+        // matching Resources folder so the production models are available in device builds.
+        private const string PrefabDir = "Assets/Resources/Characters";
 
         [MenuItem("MIRACLE/Production/Assemble Vitruvian Fighters")]
         public static void Assemble()
@@ -33,7 +37,7 @@ namespace MiracleArena.EditorTools
             BuildPrefab("FighterEnemy", body, head, hair, true);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            Debug.Log("MIRACLE: production fighter prefabs assembled. Next gate: humanoid animation controller + combat animation set.");
+            Debug.Log("MIRACLE: production fighter prefabs assembled into Resources/Characters and are runtime-loadable. Next gate: humanoid animation controller + combat animation set.");
         }
 
         private static void BuildPrefab(string name, GameObject bodyAsset, GameObject headAsset, GameObject hairAsset, bool enemy)
