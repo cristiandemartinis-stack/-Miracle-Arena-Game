@@ -34,9 +34,9 @@ jobs:
 
           test -f unity/Assets/Editor/ProductionCharacterAssembler.cs
           test -f unity/Assets/Editor/FighterAnimatorBuilder.cs
+          test -f unity/Assets/Editor/FighterAnimationQualityGate.cs
           test -f unity/Assets/Scripts/FighterAnimationContract.cs
           test -f unity/Assets/Scripts/ProductionVisualValidator.cs
-          test -f unity/Assets/Scripts/AnimationQualityGate.cs
 
           grep -q 'Attack1' unity/Assets/Scripts/FighterAnimationContract.cs
           grep -q 'Attack2' unity/Assets/Scripts/FighterAnimationContract.cs
