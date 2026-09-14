@@ -8,8 +8,8 @@ namespace MiracleArena.EditorTools
     public static class ProductionCharacterAutoAssembler
     {
         private const string BodyPath = "Assets/ProductionCharacters/Vitruvian/vitruvian_body.glb";
-        private const string PlayerPrefab = "Assets/ProductionCharacters/Prefabs/FighterPlayer.prefab";
-        private const string EnemyPrefab = "Assets/ProductionCharacters/Prefabs/FighterEnemy.prefab";
+        private const string PlayerPrefab = "Assets/Resources/Characters/FighterPlayer.prefab";
+        private const string EnemyPrefab = "Assets/Resources/Characters/FighterEnemy.prefab";
 
         static ProductionCharacterAutoAssembler()
         {
@@ -25,7 +25,7 @@ namespace MiracleArena.EditorTools
             if (AssetDatabase.LoadAssetAtPath<GameObject>(BodyPath) == null)
                 return;
 
-            Debug.Log("MIRACLE: imported production character detected; assembling fighter prefabs.");
+            Debug.Log("MIRACLE: imported production character detected; assembling runtime-loadable fighter prefabs.");
             ProductionCharacterAssembler.Assemble();
         }
     }
