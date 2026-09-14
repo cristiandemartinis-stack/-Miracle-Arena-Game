@@ -18,7 +18,7 @@ namespace MiracleArena.EditorTools
             EditorApplication.delayCall += EnsureBootScene;
         }
 
-        private static void EnsureBootScene()
+        public static void EnsureBootScene()
         {
             if (Application.isPlaying) return;
 
@@ -59,6 +59,7 @@ namespace MiracleArena.EditorTools
                 {
                     new EditorBuildSettingsScene(ScenePath, true)
                 };
+                AssetDatabase.SaveAssets();
                 Debug.Log("MIRACLE: production boot scene added to EditorBuildSettings.");
             }
         }
