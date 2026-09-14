@@ -100,6 +100,8 @@ scene.render.resolution_y = 1200
 scene.render.resolution_percentage = 100
 scene.render.image_settings.file_format = 'PNG'
 scene.render.film_transparent = False
+if scene.world is None:
+    scene.world = bpy.data.worlds.new("ValidationWorld")
 scene.world.color = (0.018, 0.022, 0.03)
 scene.render.filepath = os.path.join(OUT_DIR, "vitruvian-production-preview.png")
 
