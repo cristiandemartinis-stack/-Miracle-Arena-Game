@@ -22,6 +22,10 @@ namespace MiracleArena
         {
             controller = GetComponent<CharacterController>();
             health = GetComponent<Health>();
+            // Production fighters keep the Animator on the imported visual hierarchy,
+            // not necessarily on the gameplay root created by ProductionCharacterLoader.
+            // Resolve it here so locomotion and attacks never silently run without animation.
+            if (animator == null) animator = GetComponentInChildren<Animator>(true);
         }
 
         private void Start()
