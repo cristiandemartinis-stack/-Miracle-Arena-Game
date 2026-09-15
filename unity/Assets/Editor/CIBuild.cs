@@ -12,6 +12,23 @@ namespace MiracleArena.EditorTools
     {
         public static void BuildAndroid()
         {
+            // A successful APK is not sufficient if it only contains the empty boot scene.
+            // Assemble the checked-in production character assets and boxing animation
+            // controller first, then fail closed if the runtime-loadable fighters were not
+            // generated. This keeps CI from publishing a visually empty/placeholder demo.
+            ProductionCharacterAssembler.Assemble();
+            FighterAnimatorBuilder.Build();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            const string playerPrefab = "Assets/Resources/Characters/FighterPlayer.prefab";
+            const string enemyPrefab = "Assets/Resources/Characters/FighterEnemy.prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(playerPrefab) == null ||
+                AssetDatabase.LoadAssetAtPath<GameObject>(enemyPrefab) == null)
+            {
+                throw new Exception("Production fighter assembly failed: runtime Resources prefabs were not generated. Refusing to publish an empty Android demo.");
+            }
+
             ProductionBootSceneAutoBuilder.EnsureBootScene();
 
             var args = Environment.GetCommandLineArgs();
@@ -44,7 +61,7 @@ namespace MiracleArena.EditorTools
             if (report.summary.result != BuildResult.Succeeded)
                 throw new Exception("Android build result: " + report.summary.result);
 
-            Debug.Log("MIRACLE CI Android build succeeded: " + buildPath);
+            Debug.Log("MIRACLE CI Android build succeeded with production fighter assets: " + buildPath);
         }
     }
 }
