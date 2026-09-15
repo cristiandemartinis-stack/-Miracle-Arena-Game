@@ -78,7 +78,11 @@ jobs:
           fi
           echo 'Unity activation material is configured.'
 
-      - name: Unity build
+      # CIBuild.BuildAndroid runs the in-Editor production/animation quality gates
+      # before BuildPipeline.BuildPlayer. Keeping validation in this same licensed
+      # Unity session avoids a second Unity Personal activation while preserving
+      # a hard failure before an APK can be published.
+      - name: Unity build and production validation
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
@@ -100,67 +104,4 @@ jobs:
         with:
           name: MiracleArena-Android
           path: build/Android
-          if-no-files-found: error
-
-  validate-project:
-    name: Validate Unity project
-    needs: build-android
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-    env:
-      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-      UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
-      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Prepare validation diagnostics
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p test-artifacts
-          {
-            echo 'MIRACLE Unity validation diagnostics'
-            echo "UNITY_LICENSE configured: $([ -n \"${UNITY_LICENSE:-}\" ] && echo yes || echo no)"
-            echo "UNITY_SERIAL configured: $([ -n \"${UNITY_SERIAL:-}\" ] && echo yes || echo no)"
-            echo "UNITY_EMAIL configured: $([ -n \"${UNITY_EMAIL:-}\" ] && echo yes || echo no)"
-            echo "UNITY_PASSWORD configured: $([ -n \"${UNITY_PASSWORD:-}\" ] && echo yes || echo no)"
-            echo 'Secret values are intentionally never written to artifacts.'
-          } > test-artifacts/activation-status.txt
-
-      - name: Require Unity activation
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -z "${UNITY_LICENSE:-}" ] && [ -z "${UNITY_SERIAL:-}" ]; then
-            echo 'ERROR: Unity activation is not configured for editmode tests.'
-            exit 1
-          fi
-          echo 'Unity activation material is configured.'
-
-      - name: Unity editmode tests
-        uses: game-ci/unity-test-runner@32e57712352b500e17974b245a6dce9e11a73213 # v4
-        env:
-          UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
-          UNITY_SERIAL: ${{ env.UNITY_SERIAL }}
-          UNITY_EMAIL: ${{ env.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ env.UNITY_PASSWORD }}
-        with:
-          projectPath: unity
-          unityVersion: 6000.2.6f2
-          cliVersion: v0.1.64
-          testMode: editmode
-          artifactsPath: test-artifacts
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unity-Test-Results
-          path: test-artifacts
           if-no-files-found: error
