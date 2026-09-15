@@ -103,7 +103,7 @@ jobs:
 
   validate-project:
     name: Validate Unity project
-    needs: production-preflight
+    needs: build-android
     runs-on: ubuntu-latest
     env:
       UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
