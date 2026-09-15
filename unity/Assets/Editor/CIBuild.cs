@@ -21,6 +21,13 @@ namespace MiracleArena.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
+            // Run the deterministic animation quality gate in the SAME licensed Unity
+            // process that produces the APK. This prevents a second CI Unity activation
+            // from being the only gate between source and artifact, while still refusing
+            // builds with missing, duplicate, implausibly short or weapon-based clips.
+            if (!FighterAnimationQualityGate.Validate())
+                throw new Exception("Production fighter animation quality gate failed. Refusing to publish Android demo.");
+
             const string playerPrefab = "Assets/Resources/Characters/FighterPlayer.prefab";
             const string enemyPrefab = "Assets/Resources/Characters/FighterEnemy.prefab";
             if (AssetDatabase.LoadAssetAtPath<GameObject>(playerPrefab) == null ||
@@ -61,7 +68,7 @@ namespace MiracleArena.EditorTools
             if (report.summary.result != BuildResult.Succeeded)
                 throw new Exception("Android build result: " + report.summary.result);
 
-            Debug.Log("MIRACLE CI Android build succeeded with production fighter assets: " + buildPath);
+            Debug.Log("MIRACLE CI Android build succeeded with production fighter assets and animation quality gate: " + buildPath);
         }
     }
 }
