@@ -110,10 +110,11 @@ jobs:
       contents: read
       checks: write
     env:
-      # The stored ULF cannot activate this ephemeral test container.
-      # With no file/serial, GameCI uses Personal activation via the account.
-      UNITY_LICENSE: ''
-      UNITY_SERIAL: ''
+      # Use the same activation material that successfully builds the Android player.
+      # Clearing UNITY_LICENSE forced the test runner into a different Personal
+      # activation path and Unity 6 rejected that ephemeral container with exit 198.
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
       UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
       UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
     steps:
@@ -124,9 +125,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${UNITY_EMAIL:-}" ] || [ -z "${UNITY_PASSWORD:-}" ]; then
-            echo 'ERROR: Unity account credentials are not configured for Personal activation.'
-            echo 'Set UNITY_EMAIL and UNITY_PASSWORD in GitHub Actions secrets.'
+          if [ -z "${UNITY_LICENSE:-}" ] && [ -z "${UNITY_SERIAL:-}" ]; then
+            echo 'ERROR: Unity activation is not configured for editmode tests.'
             exit 1
           fi
           echo 'Unity activation material is configured.'
