@@ -89,6 +89,7 @@ jobs:
           projectPath: unity
           unityVersion: 6000.2.6f2
           targetPlatform: Android
+          buildMethod: MiracleArena.EditorTools.CIBuild.BuildAndroid
           buildName: MiracleArenaDemo
           buildsPath: build
           androidExportType: androidPackage
