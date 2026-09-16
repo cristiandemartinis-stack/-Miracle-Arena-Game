@@ -18,8 +18,9 @@ namespace MiracleArena
         [SerializeField] private float dodgeDistance = 2.2f;
 
         private bool busy;
+        private bool queuedAttack;
         private int comboStep;
-        private float lastAttackTime;
+        private float lastAttackTime = -999f;
 
         private void Awake()
         {
@@ -41,8 +42,20 @@ namespace MiracleArena
 
         public void Attack()
         {
-            if (busy && Time.time - lastAttackTime > comboWindow) return;
+            if (busy)
+            {
+                if (Time.time - lastAttackTime <= comboWindow) queuedAttack = true;
+                return;
+            }
+
             if (Time.time - lastAttackTime > comboWindow) comboStep = 0;
+            BeginAttack();
+        }
+
+        private void BeginAttack()
+        {
+            busy = true;
+            queuedAttack = false;
             comboStep = (comboStep % 3) + 1;
             lastAttackTime = Time.time;
             animator?.SetTrigger($"Attack{comboStep}");
@@ -51,7 +64,6 @@ namespace MiracleArena
 
         private IEnumerator AttackRoutine()
         {
-            busy = true;
             yield return new WaitForSeconds(0.14f);
             Vector3 origin = hitOrigin != null ? hitOrigin.position : transform.position + transform.forward * 0.8f + Vector3.up;
             Vector3 center = origin + transform.forward * hitDistance;
@@ -67,7 +79,15 @@ namespace MiracleArena
                 hit.SendMessage("TakeDamage", damage, SendMessageOptions.DontRequireReceiver);
             }
             yield return new WaitForSeconds(0.18f);
+
+            if (queuedAttack && Time.time - lastAttackTime <= comboWindow)
+            {
+                BeginAttack();
+                yield break;
+            }
+
             busy = false;
+            queuedAttack = false;
         }
 
         public void Dodge()
@@ -79,6 +99,7 @@ namespace MiracleArena
         private IEnumerator DodgeRoutine()
         {
             busy = true;
+            queuedAttack = false;
             animator?.SetTrigger("Dodge");
             float duration = 0.22f;
             float elapsed = 0f;
